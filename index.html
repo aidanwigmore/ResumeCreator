@@ -1,0 +1,213 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>App</title>
+  <style>
+    nav {
+      background: #eee;
+      padding: 10px;
+      position: sticky;
+      top: 0;
+      display: flex;
+      gap: 20px;
+      font-family: Arial, sans-serif;
+      border-bottom: 1px solid #ccc;
+    }
+    nav a {
+      cursor: pointer;
+      text-decoration: none;
+      color: #333;
+      font-weight: bold;
+    }
+    nav a:hover {
+      text-decoration: underline;
+    }
+    @media print {
+      nav {
+        display: none;
+      }
+    }
+  </style>
+</head>
+<body>
+  <nav>
+    <a id="navForm">Form</a>
+    <a id="navResume">Resume</a>
+  </nav>
+
+  <div id="app"></div>
+
+  <script>
+    function loadPage(page) {
+      fetch(page)
+        .then(res => res.text())
+        .then(html => {
+          document.getElementById('app').innerHTML = html;
+          if(page === 'form.html') attachFormHandler();
+          if(page === 'resume.html') renderResume();
+        })
+        .catch(err => {
+          document.getElementById('app').innerHTML = '<p>Failed to load page.</p>';
+          console.error(err);
+        });
+    }
+
+    function attachFormHandler() {
+      const form = document.querySelector('form');
+      if (!form) return;
+      
+      // Access radio buttons after form is loaded
+      const institutionRadios = form.querySelectorAll('input[name="institutionChoice"]');
+      institutionRadios.forEach(radio => {
+        radio.addEventListener('change', () => {
+          if (radio.checked) {
+            if (radio.value === 'university') {
+              // Load universities into the select
+              console.log('selected university');
+              loadUniversities('university');
+            } else if (radio.value === 'college') {
+              // Load colleges into the select
+              console.log('selected university');
+              loadUniversities('college');
+            }
+          }
+        });
+      });
+
+      document.getElementById('addLinkBtn').addEventListener('click', () => {
+        const form = document.getElementById('myForm');
+
+        const combo = {
+        label: form.label.value.trim(),
+        url: form.url.value.trim()
+        };
+
+        combinations.push(combo);
+        renderCombinations();
+        console.log('Current combinations:', combinations);
+
+        // Optionally clear just the label and URL fields after adding
+        form.label.value = '';
+        form.url.value = '';
+    });
+
+    const combinations = [];
+    
+    function renderCombinations() {
+        const list = document.getElementById('comboList');
+        list.innerHTML = '';
+
+        combinations.forEach((combo, index) => {
+        const item = document.createElement('div');
+        item.className = 'comboItem';
+
+        // Input fields for each property
+        item.innerHTML = `
+            <h3 id="label-${index}">${combo.label}</h3>
+            <h3 id="label-${index}">${combo.url}</h3>
+            <div class="btnGroup">
+            <button onclick="deleteCombo(${index})"><i class="material-icons">delete</i> Delete</button>
+            </div>
+        `;
+        list.appendChild(item);
+        });
+    }
+      
+      form.addEventListener('submit', e => {
+        e.preventDefault();
+        const data = new FormData(form);
+        localStorage.setItem('formData', JSON.stringify(Object.fromEntries(data.entries())));
+        loadPage('resume.html');
+      });
+    }
+
+    function renderResume() {
+      const data = JSON.parse(localStorage.getItem('formData'));
+      if (!data) {
+        document.getElementById('app').innerHTML = '<p>No data found. Please fill the form first.</p>';
+        return;
+      }
+      Object.entries(data).forEach(([key, value]) => {
+        const el = document.getElementById(key);
+        if (el) el.textContent = value;
+      });
+    }
+
+    // Setup nav clicks
+    document.getElementById('navForm').addEventListener('click', () => loadPage('form.html'));
+    document.getElementById('navResume').addEventListener('click', () => loadPage('resume.html'));
+
+    // Load form by default
+    loadPage('form.html');
+
+    function loadPage(page) {
+    fetch(page)
+        .then(res => res.text())
+        .then(html => {
+        document.getElementById('app').innerHTML = html;
+        if(page === 'form.html') {
+            attachFormHandler();
+            loadUniversities();
+        }
+        if(page === 'resume.html') renderResume();
+        })
+        .catch(err => {
+        document.getElementById('app').innerHTML = '<p>Failed to load page.</p>';
+        console.error(err);
+        });
+    }
+
+    function loadUniversities() {
+    fetch('CADuniversities.txt')
+        .then(response => {
+        if (!response.ok) {
+            throw new Error('Failed to load file');
+        }
+        return response.text();
+        })
+        .then(data => {
+        const lines = data.split('\n').map(line => line.trim()).filter(Boolean);
+        const schools = lines.map(line => line.split(',')[0]);
+        const uniqueSorted = [...new Set(schools)].sort((a, b) => a.localeCompare(b));
+
+        const select = document.getElementById('school');
+        if (!select) return;
+        select.innerHTML = ""; // clear "Loading..."
+
+        uniqueSorted.forEach(school => {
+            const option = document.createElement('option');
+            option.value = school;
+            option.textContent = school;
+            select.appendChild(option);
+        });
+        })
+        .catch(error => {
+        console.error('Error:', error);
+        const select = document.getElementById('school');
+        if(select) select.innerHTML = '<option>Error loading schools</option>';
+        });
+    }
+  </script>
+  <script>
+    //logic for user-inputted links
+
+    // function saveCombo(index) {
+    //     const labelInput = document.getElementById(`label-${index}`);
+    //     const urlInput = document.getElementById(`url-${index}`);
+
+    //     combinations[index] = {
+    //         label: labelInput.value,
+    //         url: urlInput.value
+    //     };
+
+    //     renderCombinations();
+    // }
+
+    function deleteCombo(index) {
+        combinations.splice(index, 1);
+        renderCombinations();
+    }
+    console.log('test');
+</script>
+</body>
+</html>
